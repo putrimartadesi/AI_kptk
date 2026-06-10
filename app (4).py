@@ -2,91 +2,76 @@ import streamlit as st
 import pandas as pd
 import joblib
 
-# Load model dan scaler
-try:
-    model = joblib.load("mental_health_model.pkl")
-    scaler = joblib.load("scaler.pkl")
-except Exception as e:
-    st.error(f"Gagal memuat model: {e}")
-    st.stop()
+# Load model
+model = joblib.load("mental_health_model.pkl")
+scaler = joblib.load("scaler.pkl")
 
-st.set_page_config(
-    page_title="Prediksi Kesehatan Mental Mahasiswa",
-    page_icon="🧠",
-    layout="wide"
-)
-
-st.title("🧠 Prediksi Kesehatan Mental Mahasiswa")
+st.title("Prediksi Kesehatan Mental Mahasiswa")
 
 # Input
-st.sidebar.header("Input Data")
+gpa = st.slider("GPA", 1.0, 4.0, 3.0)
+stress = st.slider("Stress Level", 0, 10, 5)
+anxiety = st.slider("Anxiety Score", 0, 10, 5)
+depression = st.slider("Depression Score", 0, 10, 5)
 
-gpa = st.sidebar.slider("GPA", 1.0, 4.0, 3.0)
-
-stress = st.sidebar.slider("Stress Level", 0, 10, 5)
-
-anxiety = st.sidebar.slider("Anxiety Score", 0, 10, 5)
-
-depression = st.sidebar.slider("Depression Score", 0, 10, 5)
-
-mood = st.sidebar.selectbox(
+mood = st.selectbox(
     "Mood Description",
-    [
-        "Happy",
-        "Calm",
-        "Neutral",
-        "Sad",
-        "Anxious",
-        "Stressed",
-        "Motivated",
-        "Frustrated"
-    ]
+    ["Happy","Calm","Neutral","Sad","Anxious","Stressed","Motivated","Frustrated"]
 )
 
-daily_reflections = st.sidebar.text_area(
+daily_reflections = st.text_input(
     "Daily Reflections",
     "I feel good today"
 )
 
-# Encoding Mood_Description
 mood_map = {
-    "Happy": 0,
-    "Calm": 1,
-    "Neutral": 2,
-    "Sad": 3,
-    "Anxious": 4,
-    "Stressed": 5,
-    "Motivated": 6,
-    "Frustrated": 7
+    "Happy":0,
+    "Calm":1,
+    "Neutral":2,
+    "Sad":3,
+    "Anxious":4,
+    "Stressed":5,
+    "Motivated":6,
+    "Frustrated":7
 }
 
-input_data = pd.DataFrame({
-    "GPA": [gpa],
-    "Stress_Level": [stress],
-    "Anxiety_Score": [anxiety],
-    "Depression_Score": [depression],
-    "Mood_Description": [mood_map[mood]],
-    "Daily_Reflections": [daily_reflections]
-})
+# Data input
+data = {
+    "GPA": gpa,
+    "Stress_Level": stress,
+    "Anxiety_Score": anxiety,
+    "Depression_Score": depression,
+    "Mood_Description": mood_map[mood],
+    "Daily_Reflections": daily_reflections
+}
 
-st.subheader("Data Input")
-st.dataframe(input_data)
+input_df = pd.DataFrame([data])
+
+# PENTING:
+# Sesuaikan urutan kolom dengan model
+if hasattr(model, "feature_names_in_"):
+    input_df = input_df.reindex(columns=model.feature_names_in_)
+
+st.write("Data yang dikirim ke model:")
+st.dataframe(input_df)
 
 if st.button("Prediksi"):
-
     try:
-        scaled_data = scaler.transform(input_data)
 
-        prediction = model.predict(scaled_data)[0]
+        X = scaler.transform(input_df)
 
-        if prediction == 0:
+        hasil = model.predict(X)[0]
+
+        if hasil == 0:
             st.success("Healthy 😊")
 
-        elif prediction == 1:
-            st.warning("At-Risk ⚠️")
+        elif hasil == 1:
+            st.warning("At Risk ⚠️")
 
         else:
             st.error("Struggling 🚨")
 
+    except Exception as e:
+        st.error(f"Terjadi kesalahan saat prediksi: {e}")
     except Exception as e:
         st.error(f"Terjadi kesalahan saat prediksi: {e}")
