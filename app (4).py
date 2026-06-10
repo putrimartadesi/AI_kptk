@@ -1,4 +1,3 @@
-```python
 import streamlit as st
 import pandas as pd
 import pickle
@@ -103,4 +102,3 @@ if st.button("Prediksi"):
 # ==========================
 with st.expander("Lihat File Repository"):
     st.write(os.listdir())
-```
