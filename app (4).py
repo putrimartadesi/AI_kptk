@@ -1,104 +1,174 @@
 import streamlit as st
 import pandas as pd
-import pickle
-import os
+import joblib
 
 # ==========================
 # KONFIGURASI HALAMAN
 # ==========================
 st.set_page_config(
-    page_title="Prediksi Kesehatan Mental Siswa",
+    page_title="Prediksi Kesehatan Mental Mahasiswa",
     page_icon="🧠",
-    layout="centered"
+    layout="wide"
 )
 
-st.title("🧠 Prediksi Kesehatan Mental Siswa")
-st.write("Masukkan data siswa untuk melakukan prediksi.")
+st.title("🧠 Prediksi Kesehatan Mental Mahasiswa")
 
 # ==========================
 # LOAD MODEL
 # ==========================
-MODEL_PATH = "mental_health_model.pkl"
-
 try:
-    with open(MODEL_PATH, "rb") as file:
-        model = pickle.load(file)
-
-    st.success("✅ Model berhasil dimuat")
-
-except FileNotFoundError:
-    st.error(f"❌ File '{MODEL_PATH}' tidak ditemukan.")
-    st.stop()
+    model = joblib.load("mental_health_model.pkl")
+    scaler = joblib.load("scaler.pkl")
 
 except Exception as e:
-    st.error(f"❌ Gagal memuat model: {e}")
+    st.error(f"Gagal memuat model: {e}")
+    st.info("""
+    Pastikan:
+    1. File mental_health_model.pkl ada dalam folder project
+    2. File scaler.pkl ada dalam folder project
+    3. Model dibuat menggunakan joblib.dump()
+    4. Versi scikit-learn sama dengan saat training
+    """)
     st.stop()
 
 # ==========================
-# INPUT USER
+# SIDEBAR INPUT
 # ==========================
-gpa = st.number_input(
+st.sidebar.header("Input Data Mahasiswa")
+
+age = st.sidebar.number_input("Age", 17, 35, 20)
+
+gpa = st.sidebar.slider(
     "GPA",
-    min_value=0.0,
+    min_value=1.0,
     max_value=4.0,
     value=3.0
 )
 
-stress = st.slider(
+gender = st.sidebar.selectbox(
+    "Gender",
+    ["Female", "Male", "Other"]
+)
+
+stress = st.sidebar.slider(
     "Stress Level",
-    min_value=0,
-    max_value=10,
-    value=5
+    0,
+    10,
+    5
 )
 
-anxiety = st.slider(
+anxiety = st.sidebar.slider(
     "Anxiety Score",
-    min_value=0,
-    max_value=100,
-    value=50
+    0,
+    10,
+    5
 )
 
-depression = st.slider(
+depression = st.sidebar.slider(
     "Depression Score",
-    min_value=0,
-    max_value=100,
-    value=50
+    0,
+    10,
+    5
 )
+
+sleep = st.sidebar.slider(
+    "Sleep Hours",
+    1,
+    12,
+    7
+)
+
+steps = st.sidebar.number_input(
+    "Steps Per Day",
+    1000,
+    30000,
+    8000
+)
+
+mood = st.sidebar.selectbox(
+    "Mood Description",
+    [
+        "Happy",
+        "Calm",
+        "Neutral",
+        "Sad",
+        "Anxious",
+        "Stressed",
+        "Motivated",
+        "Frustrated"
+    ]
+)
+
+sentiment = st.sidebar.slider(
+    "Sentiment Score",
+    -1.0,
+    1.0,
+    0.0
+)
+
+# ==========================
+# ENCODING
+# ==========================
+gender_map = {
+    "Female": 0,
+    "Male": 1,
+    "Other": 2
+}
+
+mood_map = {
+    "Happy": 0,
+    "Calm": 1,
+    "Neutral": 2,
+    "Sad": 3,
+    "Anxious": 4,
+    "Stressed": 5,
+    "Motivated": 6,
+    "Frustrated": 7
+}
+
+# ==========================
+# DATA INPUT
+# ==========================
+input_data = pd.DataFrame({
+    "Age": [age],
+    "GPA": [gpa],
+    "Gender": [gender_map[gender]],
+    "Stress_Level": [stress],
+    "Anxiety_Score": [anxiety],
+    "Depression_Score": [depression],
+    "Sleep_Hours": [sleep],
+    "Steps_Per_Day": [steps],
+    "Mood_Description": [mood_map[mood]],
+    "Sentiment_Score": [sentiment]
+})
+
+st.subheader("Data Input Mahasiswa")
+st.dataframe(input_data)
 
 # ==========================
 # PREDIKSI
 # ==========================
 if st.button("Prediksi"):
 
-    data = pd.DataFrame({
-        'GPA': [gpa],
-        'Stress_Level': [stress],
-        'Anxiety_Score': [anxiety],
-        'Depression_Score': [depression]
-    })
-
     try:
-        prediction = model.predict(data)
+        scaled_data = scaler.transform(input_data)
 
-        st.subheader("Hasil Prediksi")
+        prediction = model.predict(scaled_data)[0]
 
-        if prediction[0] == 0:
-            st.warning("Kategori 0")
+        if prediction == 0:
+            st.success("Healthy 😊")
+            st.write("Mahasiswa berada pada kondisi kesehatan mental yang baik.")
 
-        elif prediction[0] == 1:
-            st.info("Kategori 1")
-
-        elif prediction[0] == 2:
-            st.success("Kategori 2")
+        elif prediction == 1:
+            st.warning("At-Risk ⚠️")
+            st.write("Mahasiswa memiliki risiko gangguan kesehatan mental.")
 
         else:
-            st.write(f"Hasil Prediksi: {prediction[0]}")
+            st.error("Struggling 🚨")
+            st.write("Mahasiswa membutuhkan perhatian dan pendampingan lebih lanjut.")
 
     except Exception as e:
         st.error(f"Terjadi kesalahan saat prediksi: {e}")
-
-# ==========================
-# DEBUG
 # ==========================
 with st.expander("Lihat File Repository"):
     st.write(os.listdir())
