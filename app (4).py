@@ -2,22 +2,42 @@ import streamlit as st
 import pandas as pd
 import pickle
 
-# Load model
-model = pickle.load(open("model.pkl", "rb"))
+# ======================
+# LOAD MODEL
+# ======================
+model = pickle.load(open("mental_health_model.pkl", "rb"))
 scaler = pickle.load(open("scaler.pkl", "rb"))
 
+# ======================
+# PAGE CONFIG
+# ======================
 st.set_page_config(
     page_title="Prediksi Kesehatan Mental Mahasiswa",
+    page_icon="🧠",
     layout="wide"
 )
 
 st.title("🧠 Prediksi Kesehatan Mental Mahasiswa")
-st.write("Sistem Prediksi Berbasis AI dan Data Science")
+st.markdown("### Project AI & Data Science")
 
+# ======================
+# SIDEBAR INPUT
+# ======================
 st.sidebar.header("Input Data Mahasiswa")
 
-age = st.sidebar.slider("Usia", 17, 30, 20)
-gpa = st.sidebar.slider("GPA", 1.0, 4.0, 3.0)
+age = st.sidebar.number_input(
+    "Usia",
+    min_value=17,
+    max_value=35,
+    value=20
+)
+
+gpa = st.sidebar.slider(
+    "GPA",
+    1.0,
+    4.0,
+    3.0
+)
 
 gender = st.sidebar.selectbox(
     "Gender",
@@ -54,9 +74,9 @@ sleep = st.sidebar.slider(
 
 steps = st.sidebar.number_input(
     "Steps Per Day",
-    1000,
-    30000,
-    8000
+    min_value=1000,
+    max_value=50000,
+    value=8000
 )
 
 mood = st.sidebar.selectbox(
@@ -80,7 +100,9 @@ sentiment = st.sidebar.slider(
     0.0
 )
 
-# Encoding sederhana
+# ======================
+# ENCODING
+# ======================
 gender_map = {
     "Female": 0,
     "Male": 1,
@@ -98,57 +120,56 @@ mood_map = {
     "Frustrated": 7
 }
 
-data = pd.DataFrame({
-    'Age':[age],
-    'GPA':[gpa],
-    'Gender':[gender_map[gender]],
-    'Stress_Level':[stress],
-    'Anxiety_Score':[anxiety],
-    'Depression_Score':[depression],
-    'Sleep_Hours':[sleep],
-    'Steps_Per_Day':[steps],
-    'Mood_Description':[mood_map[mood]],
-    'Sentiment_Score':[sentiment]
+# ======================
+# DATAFRAME INPUT
+# ======================
+input_data = pd.DataFrame({
+    "Age": [age],
+    "GPA": [gpa],
+    "Gender": [gender_map[gender]],
+    "Stress_Level": [stress],
+    "Anxiety_Score": [anxiety],
+    "Depression_Score": [depression],
+    "Sleep_Hours": [sleep],
+    "Steps_Per_Day": [steps],
+    "Mood_Description": [mood_map[mood]],
+    "Sentiment_Score": [sentiment]
 })
 
 st.subheader("Data Input")
+st.dataframe(input_data)
 
-st.dataframe(data)
-
+# ======================
+# PREDIKSI
+# ======================
 if st.button("Prediksi Kesehatan Mental"):
 
-    data_scaled = scaler.transform(data)
+    scaled_data = scaler.transform(input_data)
 
-    prediction = model.predict(data_scaled)[0]
-
-    if prediction == 0:
-        status = "Healthy 😊"
-        st.success(f"Hasil Prediksi: {status}")
-
-    elif prediction == 1:
-        status = "At-Risk ⚠️"
-        st.warning(f"Hasil Prediksi: {status}")
-
-    else:
-        status = "Struggling 🚨"
-        st.error(f"Hasil Prediksi: {status}")
-
-    st.subheader("Interpretasi")
+    prediction = model.predict(scaled_data)[0]
 
     if prediction == 0:
-        st.write("""
-        Mahasiswa berada dalam kondisi kesehatan mental yang baik.
-        Tetap menjaga pola hidup sehat dan keseimbangan aktivitas.
-        """)
+        st.success("Healthy 😊")
+        st.write(
+            "Mahasiswa berada pada kondisi kesehatan mental yang baik."
+        )
 
     elif prediction == 1:
-        st.write("""
-        Mahasiswa mulai menunjukkan indikasi risiko gangguan kesehatan mental.
-        Disarankan melakukan monitoring dan konseling ringan.
-        """)
+        st.warning("At Risk ⚠️")
+        st.write(
+            "Mahasiswa memiliki risiko gangguan kesehatan mental dan perlu perhatian."
+        )
 
     else:
-        st.write("""
-        Mahasiswa menunjukkan tingkat risiko tinggi.
-        Direkomendasikan mendapatkan pendampingan profesional.
-        """)
+        st.error("Struggling 🚨")
+        st.write(
+            "Mahasiswa membutuhkan pendampingan atau konseling lebih lanjut."
+        )
+
+# ======================
+# FOOTER
+# ======================
+st.markdown("---")
+st.markdown(
+    "Project AI & Data Science - Prediksi Kesehatan Mental Mahasiswa"
+)
